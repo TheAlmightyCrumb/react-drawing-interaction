@@ -43,13 +43,55 @@ class Circle implements Drawable {
     }
 }
 
-class Line implements Drawable {
-    constructor(private pointA: Point, private pointB: Point) {
+class Square implements Drawable {
+    constructor(private edge: Line) {
+    }
+
+    public length():number {
+        return (
+            Math.sqrt((this.edge.getPointA().x - this.edge.getPointB().x) **2 + (this.edge.getPointA().y - this.edge.getPointB().y) **2)
+        )
     }
 
     public draw(context: CanvasRenderingContext2D, opt: DrawOptions): void {
         const options: DrawOptions = {
-            strokeStyle: "red",
+            strokeStyle: "gray",
+            lineJoin: "miter",
+            lineWidth: 5
+        }
+        context.lineWidth = options.lineWidth;
+        context.strokeStyle = options.strokeStyle;
+        context.lineJoin = options.lineJoin;
+
+        context.beginPath();
+        context.rect(this.edge.getPointA().x, this.edge.getPointA().y, this.length(), this.length());
+        context.stroke();
+    }
+}
+
+class Line implements Drawable {
+    constructor(private pointA: Point, private pointB: Point) {
+    }
+
+    public getPointA(): Coordinate {
+        const obj = {
+            x: this.pointA.x,
+            y: this.pointA.y
+        }
+        return obj;
+    }
+
+    public getPointB(): Coordinate {
+        const obj = {
+            x: this.pointB.x,
+            y: this.pointB.y
+        }
+        return obj;
+    }
+
+    public draw(context: CanvasRenderingContext2D, opt: DrawOptions): void {
+        const options: DrawOptions = {
+            strokeStyle: "gray",
             lineJoin: "bevel",
             lineWidth: 5
         }
@@ -180,10 +222,12 @@ const Canvas = ({ width, height }: CanvasProps) => {
             lineJoin: 'round',
             lineWidth: 1,
         }
-        const circle = new Circle(startPoint, endPoint);
-        circle.draw(context, drawOptions);
-        // const line = new Line(startPoint, endPoint);
+        // const circle = new Circle(startPoint, endPoint);
+        // circle.draw(context, drawOptions);
+        const line = new Line(startPoint, endPoint);
         // line.draw(context, drawOptions);
+        const square = new Square(line);
+        square.draw(context, drawOptions);
     };
 
     return <canvas ref={canvasRef} height={height} width={width} />;
