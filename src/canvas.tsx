@@ -147,6 +147,7 @@ const Canvas = ({ width, height }: CanvasProps) => {
             setIsPainting(true);
         }
     }, []);
+
     useEffect(() => {
         if (!canvasRef.current) {
             return;
@@ -172,6 +173,7 @@ const Canvas = ({ width, height }: CanvasProps) => {
         },
         [isPainting, mousePosition]
     );
+
     useEffect(() => {
         if (!canvasRef.current) {
             return;
@@ -187,6 +189,7 @@ const Canvas = ({ width, height }: CanvasProps) => {
         setIsPainting(false);
         setMousePosition(null);
     }, []);
+    
     useEffect(() => {
         if (!canvasRef.current) {
             return;
