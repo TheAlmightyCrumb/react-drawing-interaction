@@ -11,17 +11,48 @@ type Coordinate = {
 };
 
 interface DrawOptions {
-    strokeStyle: Pick<CanvasFillStrokeStyles, "strokeStyle">;
+    strokeStyle: string | CanvasGradient | CanvasPattern;
     lineJoin: CanvasLineJoin;
     lineWidth: number;
 };
 
-class Line {
+interface Drawable {
+    draw(context: CanvasRenderingContext2D, opt: DrawOptions): void;
+}
+
+class Circle implements Drawable {
+    radius: number;
+    constructor(private center: Point, radiusToPoint: Point) {
+        const sumSquares = (center.x - radiusToPoint.x) ** 2 + (center.y - radiusToPoint.y) **2
+        this.radius = Math.sqrt(sumSquares);
+    }
+
+    draw(context: CanvasRenderingContext2D, opt: DrawOptions) {
+        const options: DrawOptions = {
+            strokeStyle: "red",
+            lineJoin: "bevel",
+            lineWidth: 5
+        }
+        context.lineWidth = options.lineWidth;
+        context.strokeStyle = options.strokeStyle;
+        context.lineJoin = options.lineJoin;
+
+        context.beginPath();
+        context.arc(this.center.x, this.center.y, this.radius, 0, Math.PI * 2);
+        context.stroke();
+    }
+}
+
+class Line implements Drawable {
     constructor(private pointA: Point, private pointB: Point) {
     }
 
-    draw(context: CanvasRenderingContext2D, options: DrawOptions) {
-        context.strokeStyle
+    public draw(context: CanvasRenderingContext2D, opt: DrawOptions): void {
+        const options: DrawOptions = {
+            strokeStyle: "red",
+            lineJoin: "bevel",
+            lineWidth: 5
+        }
         context.lineWidth = options.lineWidth;
         context.strokeStyle = options.strokeStyle;
         context.lineJoin = options.lineJoin;
@@ -93,7 +124,7 @@ const Canvas = ({ width, height }: CanvasProps) => {
                 const newMousePosition: Point | undefined = getCoordinates(event);
                 if (mousePosition && newMousePosition) {
                     setMousePosition(newMousePosition);
-                    drawLine(mousePosition, newMousePosition);
+                    drawShape(mousePosition, newMousePosition);
                 }
             }
         },
@@ -138,7 +169,7 @@ const Canvas = ({ width, height }: CanvasProps) => {
         return point;
     };
 
-    const drawLine = (startPoint: Point, endPoint: Point) => {
+    const drawShape = (startPoint: Point, endPoint: Point) => {
         const context = canvasRef?.current?.getContext('2d');
         if (!context) {
             return;
@@ -149,9 +180,10 @@ const Canvas = ({ width, height }: CanvasProps) => {
             lineJoin: 'round',
             lineWidth: 1,
         }
-        const line = new Line(startPoint, endPoint);
-        line.draw(context, drawOptions);
-
+        const circle = new Circle(startPoint, endPoint);
+        circle.draw(context, drawOptions);
+        // const line = new Line(startPoint, endPoint);
+        // line.draw(context, drawOptions);
     };
 
     return <canvas ref={canvasRef} height={height} width={width} />;
