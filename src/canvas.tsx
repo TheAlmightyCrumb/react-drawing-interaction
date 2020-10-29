@@ -10,98 +10,95 @@ type Coordinate = {
     y: number;
 };
 
-// interface DrawOptions {
-//     strokeStyle: string | CanvasGradient | CanvasPattern; 
-//     lineJoin: CanvasLineJoin;
-//     lineWidth: number;
-// }
+interface DrawOptions {
+    strokeStyle: Pick<CanvasFillStrokeStyles, "strokeStyle">;
+    lineJoin: CanvasLineJoin;
+    lineWidth: number;
+};
 
-type DrawOptions = Pick<CanvasPathDrawingStyles, "lineJoin" | "lineWidth"> | CanvasFillStrokeStyles;
-interface Vector {
-    startPoint: Coordinate;
-    endPoint: Coordinate;
-}
+class Line {
+    constructor(private pointA: Point, private pointB: Point) {
+    }
 
-class Line implements Vector {
-    draw(context: CanvasRenderingContext2D, options: DrawOptions): void {
-        Object.assign(context, options);
+    draw(context: CanvasRenderingContext2D, options: DrawOptions) {
+        context.strokeStyle
+        context.lineWidth = options.lineWidth;
+        context.strokeStyle = options.strokeStyle;
+        context.lineJoin = options.lineJoin;
 
-        context.beginPath();
-        context.moveTo(this.startPoint.x, this.startPoint.y);
-        context.lineTo(this.endPoint.x, this.endPoint.y);
+        context.moveTo(this.pointA.x, this.pointA.y);
+        context.lineTo(this.pointB.x, this.pointB.y);
         context.closePath();
 
         context.stroke();
     }
-
-    get startPoint() {
-        return this._startPoint;
-    }
-
-    get endPoint() {
-        return this._endPoint;
-    }
-
-    constructor(private _startPoint: Coordinate, private _endPoint: Coordinate) {
-
-    }
 }
 
 class Point implements Coordinate {
+ 
+    // public readonly _x: number;
+    // public readonly _y: number;
+    // constructor(x: number, y: number) {
+    //     this._x = x;
+    //     this._y = y;
+    // }
+
+    constructor(private _x: number, private _y: number, public name: string = "point"){}
+
+    public toString(): string {
+        return this.x + "," + this.y;
+    }
+
+    public offSet(offsetLeft: number, offsetTop: number): void {
+        this._x -= offsetLeft;
+        this._y -= offsetTop;
+    }
+
     get x() {
         return this._x;
     }
     get y() {
         return this._y;
     }
-    constructor(private _x: number, private _y: number) {
-    }
-
-    fromOffSet(offX: number, offY: number): Point {
-        return new Point(this._x - offX, this._y - offY);
-    }
 }
 
 const Canvas = ({ width, height }: CanvasProps) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [isPainting, setIsPainting] = useState(false);
-    const [mousePosition, setMousePosition] = useState<Coordinate | undefined>(undefined);
+    const [mousePosition, setMousePosition] = useState<Point | null>(null);
 
-    const togglePaint = useCallback((event: MouseEvent | undefined = undefined) => {
+    const startPaint = useCallback((event: MouseEvent) => {
         const coordinates = getCoordinates(event);
-        setMousePosition(coordinates);
-        setIsPainting(event != null);
+        if (coordinates) {
+            setMousePosition(coordinates);
+            setIsPainting(true);
+        }
     }, []);
     useEffect(() => {
         if (!canvasRef.current) {
             return;
         }
-        const canvas: HTMLCanvasElement = canvasRef.current;
-        canvas.addEventListener('mousedown', togglePaint);
 
-        canvas.addEventListener('mouseup', () => togglePaint());
-        canvas.addEventListener('mouseleave', () => togglePaint());
+        const canvas = canvasRef.current;
+
+        canvas.addEventListener('mousedown', startPaint);
         return () => {
-            canvas.removeEventListener('mousedown', togglePaint);
-
-            canvas.removeEventListener('mouseup', () => togglePaint());
-            canvas.removeEventListener('mouseleave', () => togglePaint());
+            canvas.removeEventListener('mousedown', startPaint);
         };
-    }, [togglePaint]);
+    }, [startPaint]);
 
     const paint = useCallback(
         (event: MouseEvent) => {
             if (isPainting) {
-                const newMousePosition = getCoordinates(event);
+                const newMousePosition: Point | undefined = getCoordinates(event);
                 if (mousePosition && newMousePosition) {
-                    drawLine(mousePosition, newMousePosition);
                     setMousePosition(newMousePosition);
+                    drawLine(mousePosition, newMousePosition);
                 }
             }
         },
         [isPainting, mousePosition]
     );
-
     useEffect(() => {
         if (!canvasRef.current) {
             return;
@@ -113,28 +110,48 @@ const Canvas = ({ width, height }: CanvasProps) => {
         };
     }, [paint]);
 
-    const getCoordinates = (event?: MouseEvent): Point | undefined => {
-        if (!canvasRef.current || !event) {
+    const exitPaint = useCallback(() => {
+        setIsPainting(false);
+        setMousePosition(null);
+    }, []);
+    useEffect(() => {
+        if (!canvasRef.current) {
+            return;
+        }
+        const canvas: HTMLCanvasElement = canvasRef.current;
+        canvas.addEventListener('mouseup', exitPaint);
+        canvas.addEventListener('mouseleave', exitPaint);
+        return () => {
+            canvas.removeEventListener('mouseup', exitPaint);
+            canvas.removeEventListener('mouseleave', exitPaint);
+        };
+    }, [exitPaint]);
+
+    const getCoordinates = (event: MouseEvent): Point | undefined => {
+        if (!canvasRef.current) {
             return;
         }
 
         const canvas: HTMLCanvasElement = canvasRef.current;
-        return new Point(event.pageX, event.pageY).fromOffSet(canvas.offsetLeft, canvas.offsetTop);
+        const point = new Point(event.pageX, event.pageY);
+        point.offSet(canvas.offsetLeft, canvas.offsetTop);
+        return point;
     };
 
-    const drawLine = (originalMousePosition: Coordinate, newMousePosition: Coordinate) => {
+    const drawLine = (startPoint: Point, endPoint: Point) => {
         const context = canvasRef?.current?.getContext('2d');
         if (!context) {
             return;
         }
 
-        const line = new Line(originalMousePosition, newMousePosition);
         const drawOptions: DrawOptions = {
-            strokeStyle: 'yellow',
-            lineJoin: 'bevel',
-            lineWidth: 5
+            strokeStyle: 'red',
+            lineJoin: 'round',
+            lineWidth: 1,
         }
+        const line = new Line(startPoint, endPoint);
         line.draw(context, drawOptions);
+
     };
 
     return <canvas ref={canvasRef} height={height} width={width} />;
